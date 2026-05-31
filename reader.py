@@ -2,30 +2,52 @@ import pandas as pd
 import os
 from dataclasses import dataclass, field
 from typing import List
-
+import logging
+import numpy as np
 @dataclass
 class Validation:
     is_valid: bool
     error_msg: List[str] = field(default_factory=list)
 
 def read_data(path: str) -> pd.DataFrame:
-    data = pd.read_csv(path)
-    print("CSV loaded")
-    return data
+    try:
+        data = pd.read_csv(path)
+        print(f"Loaded {len(data)} rows, {len(data.columns)} columns from {path}")
+        return data
+    except FileNotFoundError:
+        print(f"File not found: {path}")
+        raise
+    except pd.errors.EmptyDataError:
+        print(f"Empty Data: {path}")
+        raise
 
 def clean_data(data:pd.DataFrame) -> pd.DataFrame:
     print("Data Cleaning")
+
+    data = data.copy()
 
     #Strip whitespace
     str_cols = data.select_dtypes(include="object").columns
     data[str_cols] = data[str_cols].apply(lambda col: col.str.strip())
 
     data = data.drop_duplicates()
-    data = data.replace(["", " "], None)
+    data = data.replace(["", " "], np.nan)
 
     #Convert Total charges: str -> numerical
+    # Convert numeric columns safely
     if "TotalCharges" in data.columns:
         data["TotalCharges"] = pd.to_numeric(data["TotalCharges"], errors="coerce")
+
+    if "MonthlyCharges" in data.columns:
+        data["MonthlyCharges"] = pd.to_numeric(data["MonthlyCharges"], errors="coerce")
+
+    # tenure should be numeric
+    if "tenure" in data.columns:
+        data["tenure"] = pd.to_numeric(data["tenure"], errors="coerce")
+
+    # SeniorCitizen should be 0/1; coerce then fill missing values so .astype(int) won't fail
+    if "SeniorCitizen" in data.columns:
+        data["SeniorCitizen"] = pd.to_numeric(data["SeniorCitizen"], errors="coerce").fillna(0)
 
     #Drop data from use if these options are blank, or N/A, since we would need for model training.
     data = data.dropna(subset = ["customerID", "Churn", "MonthlyCharges", "TotalCharges"])
@@ -86,6 +108,9 @@ def save_processed_data(df: pd.DataFrame, output_path: str) -> str:
     df.to_csv(output_path, index=False)
     print(f"Saved processed data to {output_path}")
     return output_path
+
+def train_model():
+    print("Training Model")
 
 
 

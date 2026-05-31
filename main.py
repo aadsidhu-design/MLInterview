@@ -1,24 +1,21 @@
-from datetime import date
+from datetime import date, datetime
 import os
-from reader import read_data, clean_data, validate_data, save_processed_data
-
+from reader import read_data, clean_data, validate_data, save_processed_data, train_model
+import pandas as pd
 
 PATH = "/Users/aadi/PycharmProjects/MLInterview/WA_Fn-UseC_-Telco-Customer-Churn.csv"
 
 
-def train_model(processed_path: str):
-    print(f"Training model on {processed_path}")
-    # Plug in your training logic here
 
 
-def run_pipeline() -> bool:
-    today = date.today().strftime("%Y-%m-%d")
-    processed_path = os.path.join("processed", f"churn_{today}.csv")
+def run_pipeline(input_path: str) -> bool:
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    processed_path = os.path.join("processed", f"churn_{timestamp}.csv")
 
     print("Loading raw data")
     try:
         data = read_data(PATH)
-    except (FileNotFoundError, IOError) as e:
+    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
         print(f"Pipeline failed at load step: {e}")
         return False
 
@@ -39,11 +36,9 @@ def run_pipeline() -> bool:
     save_processed_data(data, processed_path)
 
     print("Starting model training")
-    train_model(processed_path)
-
-    print("Pipeline completed successfully.")
+    train_model()
     return True
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    run_pipeline("data/raw/churn_raw.csv")
