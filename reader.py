@@ -33,8 +33,10 @@ def clean_data(data:pd.DataFrame) -> pd.DataFrame:
     data = data.drop_duplicates()
     data = data.replace(["", " "], np.nan)
 
+    #customerID validation
+    data = data[data["customerID"].str.match(r"^[A-Z0-9]{4}-[A-Z0-9]{5}$", na=False)]
+
     #Convert Total charges: str -> numerical
-    # Convert numeric columns safely
     if "TotalCharges" in data.columns:
         data["TotalCharges"] = pd.to_numeric(data["TotalCharges"], errors="coerce")
 
@@ -84,6 +86,9 @@ def validate_data(data:pd.DataFrame) -> Validation:
 
     if "customerID" in data.columns and data["customerID"].duplicated().any():
         errors.append("customerID contains duplicates")
+
+    if (~data["customerID"].str.match(r"^[A-Z0-9]{4}-[A-Z0-9]{5}$", na=False)).any():
+        errors.append("customerID contains malformed IDs")
 
     if "Churn" in data.columns:
         valid_churn = {"Yes", "No"}
